@@ -552,4 +552,13 @@ public class WorkPageOneFragment extends Fragment implements HorizontalScroll.Sc
         return sum;
     }
 
+    private void openKeyboard(EditText editText){
+        InputMethodManager imm = (InputMethodManager)this.context.getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.showSoftInput(editText, InputMethodManager.SHOW_IMPLICIT);
+    }
+
+    private void hideKeyboard(EditText editText){
+        InputMethodManager imm = (InputMethodManager)this.context.getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.hideSoftInputFromWindow(editText.getWindowToken(), 0);
+    }
 }
