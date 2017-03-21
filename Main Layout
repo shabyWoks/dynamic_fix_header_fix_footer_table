@@ -1,0 +1,555 @@
+package com.example.shaby.payshare;
+
+import android.content.Context;
+import android.graphics.Point;
+import android.graphics.drawable.Drawable;
+import android.os.Bundle;
+import android.support.v4.app.Fragment;
+import android.text.InputType;
+import android.view.Display;
+import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.WindowManager;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ListView;
+import android.widget.RelativeLayout;
+import android.widget.TableLayout;
+import android.widget.TableRow;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Map;
+
+
+/**
+ * A simple {@link Fragment} subclass.
+ */
+public class WorkPageOneFragment extends Fragment implements HorizontalScroll.ScrollViewListener, VerticalScroll.ScrollViewListener {
+
+
+    static int SCREEN_WIDTH;
+    static int SCREEN_HEIGHT;
+
+    Context context;
+
+    RelativeLayout relativeLayoutMain;
+
+    RelativeLayout relativeLayoutA;
+    RelativeLayout relativeLayoutB;
+    RelativeLayout relativeLayoutC;
+    RelativeLayout relativeLayoutD;
+
+    TableLayout tableLayoutA;
+    TableLayout tableLayoutB;
+    TableLayout tableLayoutC;
+    TableLayout tableLayoutD;
+
+    TableRow tableRow;
+    TableRow tableRowB;
+
+    HorizontalScroll horizontalScrollViewB;
+    HorizontalScroll horizontalScrollViewD;
+
+    VerticalScroll scrollViewC;
+    VerticalScroll scrollViewD;
+
+    int tableColumnCountB= 0;
+    int tableRowCountC= 0;
+    int totalCount= 0;
+
+    ListView listViewMyChooser;
+    RelativeLayout linearLayout;
+    ArrayList<String> arrayDailyItems;
+
+    Button edit_amount;
+    RelativeLayout relativeLayoutEditor;
+    Map<String, Integer> beneficiary= new HashMap<String, Integer>();
+    Map<String, Integer> items= new HashMap<String, Integer>();
+    ImageView editor_close;
+    ImageView chooser_close;
+    EditText editCell;
+
+    int tempAmt;
+
+    String[] itemString= {"food", "snacks", "fare", "abc", "bcd", "cde", "def", "efg", "fgh", "fooda", "snacksa", "farea", "abca", "bcda", "cdea", "defa", "efga", "fgha"};
+
+    public WorkPageOneFragment() {
+        // Required empty public constructor
+    }
+    private void getScreenDimension(){
+        WindowManager wm= (WindowManager) this.context.getSystemService(Context.WINDOW_SERVICE);
+        Display display = wm.getDefaultDisplay();
+        Point size = new Point();
+        display.getSize(size);
+        SCREEN_WIDTH= size.x;
+        SCREEN_HEIGHT = size.y;
+    }
+
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
+        View view= inflater.inflate(R.layout.fragment_work_page_one, container, false);
+        this.context= view.getContext();
+        Bundle bundle= getArguments();
+        FileData fileData= (FileData) bundle.getSerializable("fileData");
+        getScreenDimension();
+
+        linearLayout= (RelativeLayout)view.findViewById(R.id.ll_chooser);
+        relativeLayoutMain= (RelativeLayout)view.findViewById(R.id.relativeLayoutMain);
+        listViewMyChooser= (ListView)view.findViewById(R.id.myChooser);
+        edit_amount= (Button)view.findViewById(R.id.edit_amount);
+        relativeLayoutEditor= (RelativeLayout)view.findViewById(R.id.folder_editor);
+        editor_close= (ImageView)view.findViewById(R.id.close_folder_editor);
+        chooser_close= (ImageView)view.findViewById(R.id.closeChooser);
+        editCell= (EditText)view.findViewById(R.id.et_edit_amount);
+        editCell.requestFocus();
+        editCell.setInputType(InputType.TYPE_CLASS_NUMBER);
+        //------------- One time initialization on fragment load
+        initializeRelativeLayout();
+        initializeScrollers();
+        initializeTableLayout();
+        horizontalScrollViewB.setScrollViewListener(this);
+        horizontalScrollViewD.setScrollViewListener(this);
+        scrollViewC.setScrollViewListener(this);
+        scrollViewD.setScrollViewListener(this);
+
+        //------------- TableA will have only one row and this will be added only at time of fragment load
+        addRowToTableA();
+
+        //------------- Row for TableB is added up here which is one time
+        initializeRowForTableB();
+
+
+        //------------- From here fluctuation in addition
+        addColumnsToTableB("Date");
+        addRowToTableC("Total");
+        initializeRowForTableTotalD();
+        addColumnToTableTotalAtD(0);
+
+
+        listViewMyChooser.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+
+
+                int i= (Integer)((ListView)view.getParent()).getTag();
+                if(i == R.id.folderAddItem){
+                    String s= arrayDailyItems.get(position);
+                    addRowToTableC(s);
+                    createCompleteRow();
+                    openMyCoordinator(1);
+                    items.put(s ,1);
+                }
+                if(i == R.id.folderAddBeneficiary){
+                    String s= arrayDailyItems.get(position);
+                    addColumnsToTableB(s);
+                    createCompleteColumn();
+                    openMyCoordinator(1);
+                    beneficiary.put(s,1);
+                }
+
+            }
+        });
+
+        editor_close.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                relativeLayoutEditor.setVisibility(View.INVISIBLE);
+                hideKeyboard(editCell);
+
+            }
+        });
+        chooser_close.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                linearLayout.setVisibility(View.INVISIBLE);
+                listViewMyChooser.setVisibility(View.INVISIBLE);
+            }
+        });
+
+        edit_amount.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                int index[]= (int[])(v.getTag());
+                TableRow tableRow = (TableRow) ((TableRow) (tableLayoutD.getChildAt(tableRowCountC-1))).getChildAt(index[0]);
+                TextView t1 = (TextView) tableRow.getChildAt(0);
+                int amount = tempAmt + Integer.parseInt(editCell.getText().toString());
+                t1.setText(amount+"");
+
+                TableRow tableRowCell = (TableRow) ((TableRow) (tableLayoutD.getChildAt(index[1]))).getChildAt(index[0]);
+                TextView tCell = (TextView) tableRowCell.getChildAt(0);
+                tCell.setText(editCell.getText());
+                relativeLayoutEditor.setVisibility(View.INVISIBLE);
+                editCell.setText("");
+                hideKeyboard(editCell);
+            }
+        });
+
+        return view;
+    }
+
+    private void initializeRelativeLayout(){
+        relativeLayoutA= new RelativeLayout(this.context);
+        relativeLayoutA.setId(R.id.relativeLayoutA);
+        relativeLayoutA.setPadding(0,0,0,0);
+
+        relativeLayoutB= new RelativeLayout(this.context);
+        relativeLayoutB.setId(R.id.relativeLayoutB);
+        relativeLayoutB.setPadding(0,0,0,0);
+
+        relativeLayoutC= new RelativeLayout(this.context);
+        relativeLayoutC.setId(R.id.relativeLayoutC);
+        relativeLayoutC.setPadding(0,0,0,0);
+
+        relativeLayoutD= new RelativeLayout(this.context);
+        relativeLayoutD.setId(R.id.relativeLayoutD);
+        relativeLayoutD.setPadding(0,0,0,0);
+
+        relativeLayoutA.setLayoutParams(new RelativeLayout.LayoutParams(SCREEN_WIDTH/5,SCREEN_HEIGHT/20));
+        this.relativeLayoutMain.addView(relativeLayoutA);
+
+
+        RelativeLayout.LayoutParams layoutParamsRelativeLayoutB= new RelativeLayout.LayoutParams(SCREEN_WIDTH- (SCREEN_WIDTH/5), SCREEN_HEIGHT/20);
+        layoutParamsRelativeLayoutB.addRule(RelativeLayout.RIGHT_OF, R.id.relativeLayoutA);
+        relativeLayoutB.setLayoutParams(layoutParamsRelativeLayoutB);
+        this.relativeLayoutMain.addView(relativeLayoutB);
+
+        RelativeLayout.LayoutParams layoutParamsRelativeLayoutC= new RelativeLayout.LayoutParams(SCREEN_WIDTH/5, SCREEN_HEIGHT - (SCREEN_HEIGHT/20));
+        layoutParamsRelativeLayoutC.addRule(RelativeLayout.BELOW, R.id.relativeLayoutA);
+        relativeLayoutC.setLayoutParams(layoutParamsRelativeLayoutC);
+        this.relativeLayoutMain.addView(relativeLayoutC);
+
+        RelativeLayout.LayoutParams layoutParamsRelativeLayoutD= new RelativeLayout.LayoutParams(SCREEN_WIDTH- (SCREEN_WIDTH/5), SCREEN_HEIGHT - (SCREEN_HEIGHT/20));
+        layoutParamsRelativeLayoutD.addRule(RelativeLayout.BELOW, R.id.relativeLayoutB);
+        layoutParamsRelativeLayoutD.addRule(RelativeLayout.RIGHT_OF, R.id.relativeLayoutC);
+        relativeLayoutD.setLayoutParams(layoutParamsRelativeLayoutD);
+        this.relativeLayoutMain.addView(relativeLayoutD);
+
+    }
+
+    private void initializeScrollers(){
+        horizontalScrollViewB= new HorizontalScroll(this.context);
+        horizontalScrollViewB.setPadding(0,0,0,0);
+
+        horizontalScrollViewD= new HorizontalScroll(this.context);
+        horizontalScrollViewD.setPadding(0,0,0,0);
+
+        scrollViewC= new VerticalScroll(this.context);
+        scrollViewC.setPadding(0,0,0,0);
+
+        scrollViewD= new VerticalScroll(this.context);
+        scrollViewD.setPadding(0,0,0,0);
+
+        horizontalScrollViewB.setLayoutParams(new ViewGroup.LayoutParams(SCREEN_WIDTH- (SCREEN_WIDTH/5), SCREEN_HEIGHT/20));
+        scrollViewC.setLayoutParams(new ViewGroup.LayoutParams(SCREEN_WIDTH/5 ,SCREEN_HEIGHT - (SCREEN_HEIGHT/20)));
+        scrollViewD.setLayoutParams(new ViewGroup.LayoutParams(SCREEN_WIDTH- (SCREEN_WIDTH/5), SCREEN_HEIGHT - (SCREEN_HEIGHT/20) ));
+        horizontalScrollViewD.setLayoutParams(new ViewGroup.LayoutParams(SCREEN_WIDTH- (SCREEN_WIDTH/5), SCREEN_HEIGHT - (SCREEN_HEIGHT/20) ));
+
+        this.relativeLayoutB.addView(horizontalScrollViewB);
+        this.relativeLayoutC.addView(scrollViewC);
+        this.scrollViewD.addView(horizontalScrollViewD);
+        this.relativeLayoutD.addView(scrollViewD);
+
+    }
+
+    private  void initializeTableLayout(){
+        tableLayoutA= new TableLayout(this.context);
+        tableLayoutA.setPadding(0,0,0,0);
+        tableLayoutB= new TableLayout(this.context);
+        tableLayoutB.setPadding(0,0,0,0);
+        tableLayoutB.setId(R.id.tableLayoutB);
+        tableLayoutC= new TableLayout(this.context);
+        tableLayoutC.setPadding(0,0,0,0);
+        tableLayoutD= new TableLayout(this.context);
+        tableLayoutD.setPadding(0,0,0,0);
+
+        TableLayout.LayoutParams layoutParamsTableLayoutA= new TableLayout.LayoutParams(SCREEN_WIDTH/5, SCREEN_HEIGHT/20);
+        tableLayoutA.setLayoutParams(layoutParamsTableLayoutA);
+        tableLayoutA.setBackgroundColor(getResources().getColor(R.color.colorPrimaryDark));
+        this.relativeLayoutA.addView(tableLayoutA);
+
+        TableLayout.LayoutParams layoutParamsTableLayoutB= new TableLayout.LayoutParams(SCREEN_WIDTH -(SCREEN_WIDTH/5), SCREEN_HEIGHT/20);
+        tableLayoutB.setLayoutParams(layoutParamsTableLayoutB);
+        tableLayoutB.setBackgroundColor(getResources().getColor(R.color.colorSecondary));
+        this.horizontalScrollViewB.addView(tableLayoutB);
+
+        TableLayout.LayoutParams layoutParamsTableLayoutC= new TableLayout.LayoutParams(SCREEN_WIDTH/5, SCREEN_HEIGHT - (SCREEN_HEIGHT/20));
+        tableLayoutC.setLayoutParams(layoutParamsTableLayoutC);
+        tableLayoutC.setBackgroundColor(getResources().getColor(R.color.colorSecondary));
+        this.scrollViewC.addView(tableLayoutC);
+
+        TableLayout.LayoutParams layoutParamsTableLayoutD= new TableLayout.LayoutParams(TableLayout.LayoutParams.MATCH_PARENT, TableLayout.LayoutParams.MATCH_PARENT);
+        tableLayoutD.setLayoutParams(layoutParamsTableLayoutD);
+        this.horizontalScrollViewD.addView(tableLayoutD);
+
+    }
+
+    private void initializeRowForTableB(){
+        tableRowB= new TableRow(this.getContext());
+        tableRow.setPadding(0,0,0,0);
+        this.tableLayoutB.addView(tableRowB);
+    }
+
+    private void addRowToTableA(){
+        tableRow= new TableRow(this.context);
+        TableRow.LayoutParams layoutParamsTableRow= new TableRow.LayoutParams(SCREEN_WIDTH/5, SCREEN_HEIGHT/20);
+        tableRow.setLayoutParams(layoutParamsTableRow);
+        TextView label_date = new TextView(this.context);
+        label_date.setText("Item/ID");
+        tableRow.setGravity(Gravity.CENTER_HORIZONTAL|Gravity.CENTER_VERTICAL);
+        label_date.setTextSize(getResources().getDimension(R.dimen.cell_text_size));
+        tableRow.addView(label_date);
+        this.tableLayoutA.addView(tableRow);
+    }
+
+    @Override
+    public void onScrollChanged(HorizontalScroll scrollView, int x, int y, int oldx, int oldy) {
+        if(scrollView == horizontalScrollViewB){
+            horizontalScrollViewD.scrollTo(x,y);
+        }
+        else if(scrollView == horizontalScrollViewD){
+            horizontalScrollViewB.scrollTo(x, y);
+        }
+
+    }
+
+    @Override
+    public void onScrollChanged(VerticalScroll scrollView, int x, int y, int oldx, int oldy) {
+        if(scrollView == scrollViewC){
+            scrollViewD.scrollTo(x,y);
+        }
+        else if(scrollView == scrollViewD){
+            scrollViewC.scrollTo(x,y);
+        }
+    }
+
+
+    private synchronized void addColumnsToTableB(String text){
+        tableRow= new TableRow(this.context);
+        TableRow.LayoutParams layoutParamsTableRow= new TableRow.LayoutParams(SCREEN_WIDTH/5, SCREEN_HEIGHT/20);
+        tableRow.setPadding(3,3,3,4);
+        tableRow.setLayoutParams(layoutParamsTableRow);
+        TextView label_date = new TextView(this.context);
+        label_date.setText(text);
+        label_date.setTextSize(getResources().getDimension(R.dimen.cell_text_size));
+        this.tableRow.addView(label_date);
+        this.tableRowB.addView(tableRow);
+        tableColumnCountB++;
+    }
+
+    private synchronized void addRowToTableC(String text){
+        TableRow tableRow1= new TableRow(this.context);
+        TableRow.LayoutParams layoutParamsTableRow1= new TableRow.LayoutParams(SCREEN_WIDTH/5, SCREEN_HEIGHT/20);
+        tableRow1.setPadding(3,3,3,4);
+        tableRow1.setLayoutParams(layoutParamsTableRow1);
+        TextView label_date = new TextView(this.context);
+        label_date.setText(text);
+        label_date.setTextSize(getResources().getDimension(R.dimen.cell_text_size));
+        tableRow1.addView(label_date);
+
+        TableRow tableRow= new TableRow(this.context);
+        TableRow.LayoutParams layoutParamsTableRow= new TableRow.LayoutParams(SCREEN_WIDTH/5, SCREEN_HEIGHT/20);
+        tableRow.setPadding(0,0,0,0);
+        tableRow.setLayoutParams(layoutParamsTableRow);
+        tableRow.addView(tableRow1);
+        this.tableLayoutC.addView(tableRow, tableRowCountC-1);
+        tableRowCountC++;
+    }
+
+    private synchronized void initializeRowForTableD(){
+        TableRow tableRowB= new TableRow(this.getContext());
+        TableRow.LayoutParams layoutParamsTableRow= new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, SCREEN_HEIGHT/20);
+        tableRowB.setPadding(0,0,0,0);
+        tableRowB.setLayoutParams(layoutParamsTableRow);
+        this.tableLayoutD.addView(tableRowB, tableRowCountC-2);
+    }
+
+    private synchronized void addColumnToTableAtD(final int rowPos, String text){
+        TableRow tableRowAdd= (TableRow) this.tableLayoutD.getChildAt(rowPos);
+        tableRow= new TableRow(this.context);
+        TableRow.LayoutParams layoutParamsTableRow= new TableRow.LayoutParams(SCREEN_WIDTH/5, SCREEN_HEIGHT/20);
+        tableRow.setPadding(3,3,3,4);
+        tableRow.setBackground(getResources().getDrawable(R.drawable.cell_bacground));
+        tableRow.setLayoutParams(layoutParamsTableRow);
+
+        tableRow.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                relativeLayoutEditor.setVisibility(View.VISIBLE);
+                openKeyboard(editCell);
+                // Sending the the position of cell to button
+                TableRow tableRowAdd= (TableRow)tableLayoutD.getChildAt(rowPos);
+                int index[] = {tableRowAdd.indexOfChild(v), rowPos};
+                edit_amount.setTag(index);
+
+                // Accessing the cell clicked
+                TableRow tr= (TableRow)v;
+                TextView t= (TextView)v.getTag();
+                editCell.setText(t.getText());
+
+                // Accessing Total cell
+                TableRow tableRow = (TableRow) ((TableRow) (tableLayoutD.getChildAt(tableRowCountC-1))).getChildAt(index[0]);
+                TextView totalTextView = (TextView) tableRow.getChildAt(0);
+                int amount = Integer.parseInt(totalTextView.getText() + "");
+                tempAmt= amount - Integer.parseInt(t.getText().toString());
+            }
+        });
+        TextView label_date = new TextView(this.context);
+        label_date.setText(text);
+        label_date.setTextSize(getResources().getDimension(R.dimen.cell_text_size));
+        tableRow.setTag(label_date);
+        this.tableRow.addView(label_date);
+        tableRowAdd.addView(tableRow);
+
+
+    }
+
+    private void createCompleteColumn(){
+        int i=0;
+        int j=tableRowCountC-1;
+        for(int k=i; k<=j; k++){
+            if(k<j){
+                addColumnToTableAtD(k, "0");
+            }
+
+            else
+                addColumnToTableTotalAtD(k);
+        }
+    }
+
+    private void createCompleteRow(){
+        initializeRowForTableD();
+        int i=0;
+        int j=tableColumnCountB-1;
+        int pos= tableRowCountC-2;
+        for(int k=i; k<=j; k++){
+            if(k == 0){
+                addColumnToTableAtD(pos, getDate());
+            }
+            else {
+                addColumnToTableAtD(pos, "0");
+            }
+        }
+    }
+
+    public void openMyCoordinator(int i){
+        arrayDailyItems= new ArrayList<String>();
+        ArrayAdapter<String> arrayAdapter;
+        if(i == 2){
+            for(int j=0; j<itemString.length; j++){
+                String s= itemString[j];
+                if(! items.containsKey(s)){
+                    arrayDailyItems.add(s);
+                }
+            }
+            arrayAdapter= new ArrayAdapter<>(getContext(), android.R.layout.simple_list_item_1,arrayDailyItems);
+            listViewMyChooser.setAdapter(arrayAdapter);
+            listViewMyChooser.setTag(R.id.folderAddItem);
+        }
+        else if(i == 1){
+            DatabasePayShare db= new DatabasePayShare(getContext());
+            ArrayList<BeneficiaryData> beneficiaryArray= db.GetAllBeneficiary();
+            arrayDailyItems= new ArrayList<String>();
+            for(int j=0; j<beneficiaryArray.size(); j++){
+                String s= (beneficiaryArray.get(j).getbName());
+                if(! beneficiary.containsKey(s)){
+                    arrayDailyItems.add(s);
+                }
+
+            }
+            arrayAdapter= new ArrayAdapter<>(getContext(), android.R.layout.simple_list_item_1,arrayDailyItems);
+            listViewMyChooser.setAdapter(arrayAdapter);
+            listViewMyChooser.setTag(R.id.folderAddBeneficiary);
+        }
+        if(linearLayout.getVisibility() == View.VISIBLE){
+            linearLayout.setVisibility(View.INVISIBLE);
+            listViewMyChooser.setVisibility(View.INVISIBLE);
+        }
+        else{
+            linearLayout.setVisibility(View.VISIBLE);
+            listViewMyChooser.setVisibility(View.VISIBLE);
+
+        }
+
+        relativeLayoutMain.setEnabled(false);
+    }
+
+    private synchronized void initializeRowForTableTotalD(){
+        TableRow tableRowB= new TableRow(this.getContext());
+        TableRow.LayoutParams layoutParamsTableRow= new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, SCREEN_HEIGHT/20);
+        tableRowB.setPadding(0,0,0,0);
+        tableRowB.setBackgroundColor(getResources().getColor(R.color.colorAccent));
+        tableRowB.setLayoutParams(layoutParamsTableRow);
+        this.tableLayoutD.addView(tableRowB);
+    }
+
+    private synchronized void addColumnToTableTotalAtD(int rowPos) {
+        TableRow tableRowAdd = (TableRow) this.tableLayoutD.getChildAt(rowPos);
+        tableRow = new TableRow(this.context);
+        TableRow.LayoutParams layoutParamsTableRow = new TableRow.LayoutParams(SCREEN_WIDTH / 5, SCREEN_HEIGHT / 20);
+        tableRow.setPadding(3, 3, 3, 4);
+        if(totalCount != 0){
+            tableRow.setBackground(getResources().getDrawable(R.drawable.cell_bacground));
+        }
+        tableRow.setLayoutParams(layoutParamsTableRow);
+        TextView label_date = new TextView(this.context);
+        int sum=0;
+        if(totalCount != 0){
+            sum= setTotal(totalCount);
+            label_date.setText(sum+"");
+        }
+        else{
+            label_date.setText("");
+        }
+        label_date.setTextSize(getResources().getDimension(R.dimen.cell_text_size));
+        tableRow.setTag(label_date);
+        this.tableRow.addView(label_date);
+        tableRowAdd.addView(tableRow);
+        totalCount++;
+
+    }
+
+    private String getDate(){
+        final Calendar c = Calendar.getInstance();
+        int mYear = c.get(Calendar.YEAR);
+        int mMonth = c.get(Calendar.MONTH);
+        mMonth++;
+        int mDay = c.get(Calendar.DAY_OF_MONTH);
+        if(mMonth<10)
+            return (mDay+"/0"+mMonth+"/"+mYear);
+        else
+            return (mDay+"/"+mMonth+"/"+mYear);
+    }
+
+    private int setTotal(int pos){
+        int i=0;
+        int j= tableRowCountC-1;
+        int sum=0;
+        for(int k=i; k<j; k++){
+            TableRow tableRow = (TableRow) ((TableRow) (this.tableLayoutD.getChildAt(k))).getChildAt(pos);
+            TextView t = (TextView) tableRow.getChildAt(0);
+            int amount = Integer.parseInt(t.getText() + "");
+            sum = sum + amount;
+
+        }
+        return sum;
+    }
+
+}
