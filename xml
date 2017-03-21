@@ -1,0 +1,105 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:id="@+id/relativeLayoutMain"
+    android:layout_margin="0dp"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    tools:context="com.example.shaby.payshare.WorkPageOneFragment">
+
+
+
+
+    <android.support.design.widget.CoordinatorLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/workPageCordinator"
+        android:alpha="0.9"
+        android:translationZ="5dp"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true">
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginRight="15dp"
+            android:layout_marginLeft="15dp"
+            android:orientation="horizontal"
+            android:background="@color/colorAccent"
+            android:visibility="invisible"
+            android:id="@+id/ll_chooser"
+            android:layout_marginTop="90dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Your Options are"
+                android:textSize="20dp"
+                android:layout_marginTop="20dp"
+                android:layout_marginLeft="15dp"/>
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:id="@+id/closeChooser"
+                android:src="@drawable/close"
+                android:layout_alignParentRight="true"
+                android:layout_marginRight="5dp"
+                android:layout_marginTop="5dp"
+                />
+        </RelativeLayout>
+        <ListView
+            android:layout_width="match_parent"
+            android:layout_height="300dp"
+            android:layout_marginTop="150dp"
+            android:layout_marginLeft="15dp"
+            android:layout_marginRight="15dp"
+            android:visibility="invisible"
+            android:id="@+id/myChooser"
+            android:background="@color/colorAccent">
+
+        </ListView>
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:background="@color/colorAccent"
+            android:id="@+id/folder_editor"
+            android:alpha="0.95"
+            android:visibility="invisible"
+            android:layout_gravity="bottom">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:id="@+id/close_folder_editor"
+                android:src="@drawable/close"
+                android:layout_marginRight="5dp"
+                android:layout_marginTop="5dp"
+                android:layout_alignParentRight="true"
+                />
+
+            <EditText
+                android:layout_width="200dp"
+                android:layout_height="40dp"
+                android:layout_marginTop="10dp"
+                android:layout_marginLeft="10dp"
+                android:id="@+id/et_edit_amount"
+
+
+                android:background="@color/cardview_light_background"/>
+            <Button
+                android:layout_width="80dp"
+                android:layout_height="40dp"
+                android:padding="0dp"
+                android:layout_alignParentRight="true"
+                android:layout_marginTop="10dp"
+                android:layout_marginRight="35dp"
+                android:id="@+id/edit_amount"
+                android:text="Change"/>
+
+        </RelativeLayout>
+
+
+
+    </android.support.design.widget.CoordinatorLayout>
+
+</RelativeLayout>
