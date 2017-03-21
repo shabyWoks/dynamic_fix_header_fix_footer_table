@@ -1,0 +1,7 @@
+// Function Call that triggers dynamic addition of rows and columns
+
+// For columns
+createCompleteColumn();
+
+// For rows
+createCompleteRow();
